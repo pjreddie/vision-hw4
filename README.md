@@ -1,55 +1,140 @@
-# CSE 455 Homework 3 #
+# CSE 455 Homework 4 #
 
 Welcome friends,
 
-It's time for optical flow!
+It's time for neural networks!
 
-To start out this homework, copy over your `process_image.c`, `filter_image.c`, `resize_image.c`, `harris_image.c`, and`panorama_image.c` files from hw2 to the `src` directory in this homework. We will be continuing to build out your image library.
+To start out this homework, copy over your `process_image.c`, `filter_image.c`, `resize_image.c`, `harris_image.c`, `panorama_image.c`, and `flow_image.c` files from hw3 to the `src` directory in this homework. We will be continuing to build out your image library.
 
-## 1.1 Integral images ##
+## 1. Implementing neural networks ##
 
-Optical flow has to run on video so it needs to be fast! We'll be calculating structure matrices again so we need to do aggregated sums over regions of the image. However, instead of smoothing with a Gaussian filter, we'll use [integral images](https://en.wikipedia.org/wiki/Summed-area_table) to simulate smoothing with a box filter.
+We've added a bunch of new data structures and types to your image library as we begin to implement some machine learning algorithms. Check them out at line 122 in `src/image.h`.
 
-Fill in `make_integral_image` as described in the wikipedia article. You may not want to use the `get_pixel` methods unless you do bounds checking so you don't run into trouble.
+## 1.1 Activation functions ##
 
-## 1.2 Smoothing using integral images ##
+An important part of machine learning, be it linear classifiers or neural networks, is the activation function you use. Fill in `void activate_matrix(matrix m, ACTIVATION a)` to modify `m` to be `f(m)` applied elementwise where the function `f` is given by what the activation `a` is.
 
-We can use our integral image to quickly calculate the sum of regions of an image. Fill in `box_filter_image` so that every pixel in the output is the average of pixels in a given window size.
+Remember that for our softmax activation we will take e^x for every element x, but then we have to normalize each element by the sum as well. Each row in the matrix is a separate data point so we want to normalize over each data point separately.
 
-## 2. Lucas-Kanade optical flow ##
+## 1.2 Taking gradients ##
 
-We'll be implementing [Lucas-Kanade](https://en.wikipedia.org/wiki/Lucas%E2%80%93Kanade_method) optical flow. We'll use a structure matrix but this time with temporal information as well. The equation we'll use is:
+As we are calculating the partial derivatives for the weights of our model we have to remember to factor in the gradient from our activation function at every layer. We will have the derivative of the loss with respect to the output of a layer (after activation) and we need the derivative of the loss with respect to the input (before activation). To do that we take each element in our delta (the partial derivative) and multiply it by the gradient of our activation function.
 
-![](figs/flow-eq.png)
+Normally, to calculate `f'(x)` we would need to remember what the input to the function, `x`, was. However, all of our activation functions have the nice property that we can calculate the gradient `f'(x)` only with the output `f(x)`. This means we have to remember less stuff when running our model.
 
-## 2.1 Time-structure matrix ##
+The gradient of a linear activation is just 1 everywhere. The gradient of our softmax will also be 1 everywhere because we will only use the softmax as our output with a cross-entropy loss function, for an explaination of why see [here](https://math.stackexchange.com/questions/945871/derivative-of-softmax-loss-function?utm_medium=organic&utm_source=google_rich_qa&utm_campaign=google_rich_qa) or [here](https://eli.thegreenplace.net/2016/the-softmax-function-and-its-derivative/#softmax-and-cross-entropy-loss).
 
-We'll need spatial and temporal gradient information for the flow equations. Calculate a time-structure matrix. Spatial gradients can be calculated as normal. The time gradient can be calculated as the difference between the previous image and the next image in a sequence. Fill in `time_structure_matrix`.
+The gradient of our logistic function is discussed [here](https://en.wikipedia.org/wiki/Logistic_function#Derivative):
 
-## 2.2 Calculating velocity from the structure matrix ##
+    f'(x) = f(x) * (1 - f(x))
 
-Fill in `velocity_image` to use the equation to calculate the velocity of each pixel in the x and y direction. For each pixel, fill in the `matrix M`, invert it, and use it to calculate the velocity.
+I'll let you figure out on your own what `f'(x)` given `f(x)` is for RELU and Leaky RELU.
 
-Try calculating the optical flow between two dog images:
+As discussed in the backpropagation slides, we just multiply our partial derivative by `f'(x)` to backpropagate through an activation function. Fill in `void gradient_matrix(matrix m, ACTIVATION a, matrix d)` to multiply the elements of `d` by the correct gradient information where `m` is the output of a layer that uses `a` as it's activation function.
 
-    a = load_image("data/dog_a.jpg")
-    b = load_image("data/dog_b.jpg")
-    flow = optical_flow_images(b, a, 15, 8)
-    draw_flow(a, flow, 8)
-    save_image(a, "lines")
+## 1.3 Forward propagation ##
 
-It may look something like:
+Now we can fill in how to forward-propagate information through a layer. First check out our layer struct:
 
-![](figs/lines.jpg)
+    typedef struct {
+        matrix in;              // Saved input to a layer
+        matrix w;               // Current weights for a layer
+        matrix dw;              // Current weight updates
+        matrix v;               // Past weight updates (for use with momentum)
+        matrix out;             // Saved output from the layer
+        ACTIVATION activation;  // Activation the layer uses
+    } layer;
 
-## 3. Optical flow demo using OpenCV ## 
+During forward propagation we will do a few things. We'll multiply the input matrix by our weight matrix `w`. We'll apply the activation function `activation`. We'll also save the input and output matrices in the layer so that we can use them during backpropagation. But this is already done for you.
 
-Using OpenCV we can get images from the webcam and display the results in real-time. Try installing OpenCV and enabling OpenCV compilation in the Makefile (set `OPENCV=1`). Then run:
+Fill in the TODO in `matrix forward_layer(layer *l, matrix in)`. You will need the matrix multiplication function `matrix matrix_mult_matrix(matrix a, matrix b)` provided by our matrix library.
 
-    optical_flow_webcam(15,4,8)
+Using matrix operations we can batch-process data. Each row in the input `in` is a separate data point and each row in the returned matrix is the result of passing that data point through the layer.
+
+## 1.4 Backward propagation ##
+
+We have to backpropagate error through our layer. We will be given `dL/dy`, the derivative of the loss with respect to the output of the layer, `y`. The output `y` is given by `y = f(xw)` where `x` is the input, `w` is our weights for that layer, and `f` is the activation function. What we want to calculate is `dL/dw` so we can update our weights and `dL/dx` which is the backpropagated loss to the previous layer. You'll be filling in `matrix backward_layer(layer *l, matrix delta)`
+
+### 1.4.1 Gradient of activation function ###
+
+First we need to calculate `dL/d(xw)` using the gradient of our activation function. Recall:
+
+    dL/d(xw) = dL/dy * dy/d(xw)
+             = dL/dy * df(xw)/d(xw)
+             = dL/dy * f'(xw)
+
+Use your `void gradient_matrix(matrix m, ACTIVATION a, matrix d)` function to change delta from `dL/dy` to `dL/d(xw)`
+
+### 1.4.2 Derivative of loss w.r.t. weights ###
+
+Next we want to calculate the derivative with respect to our weights, `dL/dw`. Recall:
+
+    dL/dw = dL/d(xw) * d(xw)/dw
+          = dL/d(xw) * x
+
+but remember from the slides, to make the matrix dimensions work out right we acutally do the matrix operiation of `xt * dL/d(xw)` where `xt` is the transpose of the input matrix `x`.
+
+In our layer we saved the input as `l->in`. Calculate `xt` using that and the matrix transpose function in our library, `matrix transpose_matrix(matrix m)`. Then calculate `dL/dw` and save it into `l->dw` (free the old one first to not leak memory!). We'll use this later when updating our weights.
+
+### 1.4.3 Derivative of loss w.r.t. input ###
+
+Next we want to calculate the derivative with respect to the input as well, `dL/dx`. Recall:
+
+    dL/dx = dL/d(xw) * d(xw)/dx
+          = dL/d(xw) * w
+
+again, we have to make the matrix dimensions line up so it actually ends up being `dL/d(xw) * wt` where `wt` is the transpose of our weights, `w`. Calculate `wt` and then calculate dL/dx. This is the matrix we will return.
+
+## 1.5 Weight updates ##
+
+After we've performed a round of forward and backward propagation we want to update our weights. We'll fill in `void update_layer(layer *l, double rate, double momentum, double decay)` to do just that.
+
+Remember from class with momentum and decay our weight update rule is:
+
+    Δw_t = dL/dw_t - λw_t + mΔw_{t-1}
+    w_{t+1} = w_t + ηΔw_t
+
+We'll be doing gradient ascent (the partial derivative component is positive) instead of descent because we'll flip the sign of our partial derivative when we calculate it at the output. We saved `dL/dw_t` as `l->dw` and by convention we'll use `l->v` to store the previous weight change `Δw_{t-1}`.
+
+Calculate the current weight change as a weighted sum of `l->dw`, `l->w`, and `l->v`. The function `matrix axpy_matrix(double a, matrix x, matrix y)` will be useful here, it calculates the result of the operation `ax+y` where `a` is a scalar and `x` and `y` are matrices. Save the current weight change in `l->v` for next round (remember to free the current `l->v` first).
+
+Finally, apply the weight change to your weights by adding a scaled amount of the change based on the learning rate.
+
+## 1.6 Read through the rest of the code ##
+
+Check out the remainder of the functions which string layers together to make a model, run the model forward and backward, update it, train it, etc. Notable highlights:
+
+#### `layer make_layer(int input, int output, ACTIVATION activation)` ####
+
+Makes a new layer that takes `input` number of inputs and produces `output` number of outputs. Note that we randomly initialize the weight vector, in this case with a uniform random distribution between `[-sqrt(2/input), sqrt(2/input)]`. The weights could be initialize with other random distributions but this one works pretty well. This is one of those secret tricks you just have to know from experience!
+
+#### `double accuracy_model(model m, data d)` ####
+
+Will be useful to test out our model once we are done training it.
 
 
-## 4. Turn it in ##
+#### `double cross_entropy_loss(matrix y, matrix p)` ####
 
-Turn in your `flow_image.c` on canvas under Assignment 3.
+Calculates the cross-entropy loss for the ground-truth labels `y` and our predictions `p`. Cross-entropy loss is just negative log-likelihood (we discussed log-likelihood in class for logistic regression) for multi-class classification. Since we added the negative sign it becomes a loss function that we want to minimize. Cross-entropy loss is given by:
+
+    L = Σ(-y_i log(p_i))
+
+for a single data point, summing across the different classes. Cross-entropy loss is nice to use with our softmax activation because the partial derivatives are nice. If the output of our final layer uses a softmax: `y = σ(wx)` then:
+
+    dL/d(wx) = (y - truth)
+
+During training, we'll just calculate `dL/dy` as `(y - truth)` and set the gradient of the softmax to be 1 everywhere to have the same effect, as discussed earlier. This avoids numerical instability with calculating the "true" `dL/dy` and `dσ(x)/dx` for cross-entropy loss and the softmax function independently and multiplying them together.
+
+#### `void train_model(...)` ####
+
+Our training code to implement SGD. First we get a random subset of the data using `data random_batch(data d, int n)`. Then we run our model forward and calculate the error we make `dL/dy`. Finally we backpropagate the error through the model and update the weights at every layer.
+
+## 2. Experiments with MNIST ##
+
+# UNDER CONSTRUCTION #
+
+
+## 3. Turn it in ##
+
+Turn in your `classifier.c` on canvas under Assignment 4.
 

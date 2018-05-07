@@ -1,5 +1,6 @@
 #ifndef IMAGE_H
 #define IMAGE_H
+#include <stdio.h>
 
 #include "matrix.h"
 #define TWOPI 6.2831853
@@ -117,6 +118,34 @@ void draw_flow(image im, image v, float scale);
         int show_image(image im, const char *name, int ms);
     #endif
 #endif
+
+// Machine Learning
+
+typedef enum{LINEAR, LOGISTIC, RELU, LRELU, SOFTMAX} ACTIVATION;
+
+typedef struct {
+    matrix in;              // Saved input to a layer
+    matrix w;               // Current weights for a layer
+    matrix dw;              // Current weight updates
+    matrix v;               // Past weight updates (for use with momentum)
+    matrix out;             // Saved output from the layer
+    ACTIVATION activation;  // Activation the layer uses
+} layer;
+
+typedef struct{
+    matrix X;
+    matrix y;
+} data;
+
+typedef struct {
+    layer *layers;
+    int n;
+} model;
+
+data load_classification_data(char *images, char *label_file, int bias);
+void free_data(data d);
+data random_batch(data d, int n);
+char *fgetl(FILE *fp);
 
 #endif
 

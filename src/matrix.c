@@ -24,9 +24,11 @@ matrix make_translation_homography(float dx, float dy)
 
 void free_matrix(matrix m)
 {
-    int i;
-    for(i = 0; i < m.rows; ++i) free(m.data[i]);
-    free(m.data);
+    if (m.data) {
+        int i;
+        if (!m.shallow) for(i = 0; i < m.rows; ++i) free(m.data[i]);
+        free(m.data);
+    }
 }
 
 matrix make_matrix(int rows, int cols)
@@ -34,6 +36,7 @@ matrix make_matrix(int rows, int cols)
     matrix m;
     m.rows = rows;
     m.cols = cols;
+    m.shallow = 0;
     m.data = calloc(m.rows, sizeof(double *));
     int i;
     for(i = 0; i < m.rows; ++i) m.data[i] = calloc(m.cols, sizeof(double));
@@ -92,6 +95,20 @@ matrix matrix_mult_matrix(matrix a, matrix b)
     return p;
 }
 
+matrix matrix_elmult_matrix(matrix a, matrix b)
+{
+    assert(a.cols == b.cols);
+    assert(a.rows == b.rows);
+    int i, j;
+    matrix p = make_matrix(a.rows, a.cols);
+    for(i = 0; i < p.rows; ++i){
+        for(j = 0; j < p.cols; ++j){
+            p.data[i][j] = a.data[i][j] * b.data[i][j];
+        }
+    }
+    return p;
+}
+
 matrix matrix_sub_matrix(matrix a, matrix b)
 {
     assert(a.cols == b.cols);
@@ -106,12 +123,27 @@ matrix matrix_sub_matrix(matrix a, matrix b)
     return p;
 }
 
+matrix axpy_matrix(double a, matrix x, matrix y)
+{
+    assert(x.cols == y.cols);
+    assert(x.rows == y.rows);
+    int i, j;
+    matrix p = make_matrix(x.rows, x.cols);
+    for(i = 0; i < x.rows; ++i){
+        for(j = 0; j < x.cols; ++j){
+            p.data[i][j] = a*x.data[i][j] + y.data[i][j];
+        }
+    }
+    return p;
+}
+
 matrix transpose_matrix(matrix m)
 {
     matrix t;
     t.rows = m.cols;
     t.cols = m.rows;
     t.data = calloc(t.rows, sizeof(double *));
+    t.shallow = 0;
     int i, j;
     for(i = 0; i < t.rows; ++i){
         t.data[i] = calloc(t.cols, sizeof(double));
@@ -225,7 +257,7 @@ matrix matrix_invert(matrix m)
             c.data[k][j] /= val;
         }
         for(i = k+1; i < c.rows; ++i){
-            float s = -c.data[i][k];
+            double s = -c.data[i][k];
             c.data[i][k] = 0;
             for(j = k+1; j < c.cols; ++j){
                 c.data[i][j] +=  s*c.data[k][j];
@@ -296,16 +328,28 @@ int* in_place_LUP(matrix m)
     return pivot;
 }
 
-matrix random_matrix(int rows, int cols)
+matrix random_matrix(int rows, int cols, double s)
 {
     matrix m = make_matrix(rows, cols);
     int i, j;
     for(i = 0; i < rows; ++i){
         for(j = 0; j < cols; ++j){
-            m.data[i][j] = rand()%100 - 50;    
+            m.data[i][j] = 2*s*(rand()%1000/1000.0) - s;    
         }
     }
     return m;
+}
+
+double mag_matrix(matrix m)
+{
+    int i, j;
+    double sum = 0;
+    for(i = 0; i < m.rows; ++i){
+        for(j = 0; j < m.cols; ++j){
+            sum += m.data[i][j]*m.data[i][j]; 
+        }
+    }
+    return sqrt(sum);
 }
 
 double *sle_solve(matrix A, double *b)
@@ -332,7 +376,7 @@ void test_matrix()
     int i;
     for(i = 0; i < 100; ++i){
         int s = rand()%4 + 3;
-        matrix m = random_matrix(s, s);
+        matrix m = random_matrix(s, s, 10);
         matrix inv = matrix_invert(m);
         matrix res = matrix_mult_matrix(m, inv);
         print_matrix(res);
