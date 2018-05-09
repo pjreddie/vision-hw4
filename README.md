@@ -131,10 +131,89 @@ Our training code to implement SGD. First we get a random subset of the data usi
 
 ## 2. Experiments with MNIST ##
 
-# UNDER CONSTRUCTION #
+We'll be testing out your implementation on the [MNIST dataset](http://yann.lecun.com/exdb/mnist/)!
+
+When there are questions during this section please answer them in the `tryml.py` file, you will submit this file in Canvas as well as `classifier.c`
+
+### 2.1 Getting the data ###
+
+To run your model you'll need the dataset. The training images can be found [here](https://pjreddie.com/media/files/mnist_train.tar.gz) and the test images are [here](https://pjreddie.com/media/files/mnist_test.tar.gz), I've preprocessed them for you into PNG format. To get the data you can run:
+
+    wget https://pjreddie.com/media/files/mnist_train.tar.gz
+    wget https://pjreddie.com/media/files/mnist_test.tar.gz
+    tar xzf mnist_train.tar.gz
+    tar xzf mnist_test.tar.gz
+
+We'll also need a list of the images in our training and test set. To do this you can run:
+
+    find train -name \*.png > mnist.train
+    find test -name \*.png > mnist.test
+
+Or something similar.
+
+### 2.2 Train a linear softmax model ###
+
+Check out `tryml.py` to see how we're actually going to run the machine learning code you wrote. There are a couple example models in here for softmax regression and neural networks. Run the file with: `python tryml.py` to train a softmax regression model on MNIST. You will see a bunch of numbers scrolling by, this is the loss calculated by the model for the current batch. Hopefully over time this loss goes down as the model improves.
+
+After training our python script will calculate the accuracy the model gets on both the training dataset and a separate testing dataset.
+
+### 2.2.1 Question ###
+
+Why might we be interested in both training error and testing error? What do these two numbers tell us about our current model?
+
+### 2.2.2 Question ###
+
+Try varying the model parameter for learning rate to different powers of 10 (i.e. 10^1, 10^0, 10^-1, 10^-2, 10^-3) and training the model. What patterns do you see and how does the choice of learning rate affect both the loss during training and the final model accuracy?
+
+### 2.2.3 Question ###
+
+Try varying the parameter for weight decay to different powers of 10: (10^0, 10^-1, 10^-2, 10^-3, 10^-4, 10^-5). How does weight decay affect the final model training and test accuracy?
+
+### 2.3 Train a neural network ###
+
+Now change the training code to use the neural network model instead of the softmax model.
+
+### 2.3.1 Question ###
+
+Currently the model uses a logistic activation for the first layer. Try using a the different activation functions we programmed. How well do they perform? What's best?
+
+### 2.3.2 Question ###
+
+Using the same activation, find the best (power of 10) learning rate for your model. What is the training error and testing error?
+
+### 2.3.3 Question ###
+
+Right now the regularization parameter `decay` is set to 0. Try adding some decay to your model. What happens, does it help? Why or why not may this be?
 
 
-## 3. Turn it in ##
+### 2.3.4 Question ###
 
-Turn in your `classifier.c` on canvas under Assignment 4.
+Modify your model so it has 3 layers instead of two. The layers should be `inputs -> 64`, `64 -> 32`, and `32 -> outputs`. Also modify your model to train for 3000 iterations instead of 1000. Look at the training and testing error for different values of decay (powers of 10, 10^-4 -> 10^0). Which is best? Why?
+
+## 3. Training on CIFAR ##
+
+The [CIFAR-10](https://www.cs.toronto.edu/~kriz/cifar.html) dataset is meant to be similar to MNIST but much more challenging. Using the same model we just created, let's try training on CIFAR.
+
+### 3.1 Get the data ###
+
+We have to do a similar process as last time, getting the data and creating files to hold the paths. Run:
+
+    wget http://pjreddie.com/media/files/cifar.tgz
+    tar xzf cifar.tgz
+    find cifar/train -name \*.png > cifar.train
+    find cifar/test -name \*.png > cifar.test
+
+Notice that the file of possible labels can be found in `cifar/labels.txt`
+
+### 3.2 Train on CIFAR ###
+
+Modify `tryml.py` to use CIFAR. This should mostly involve swapping out references to `mnist` with `cifar` during dataset loading. Then try training the network. You may have to fiddle with the learning rate to get it to train well.
+
+### 3.2.1 Question ###
+
+How well does your network perform on the CIFAR dataset?
+
+## 4. Turn it in ##
+
+Turn in your `classifier.c` and `tryml.py` on canvas under Assignment 4.
 
