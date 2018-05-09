@@ -133,7 +133,7 @@ Our training code to implement SGD. First we get a random subset of the data usi
 
 We'll be testing out your implementation on the [MNIST dataset](http://yann.lecun.com/exdb/mnist/)!
 
-When there are questions during this section please answer them in the `tryml.py` file, you will submit this file in Canvas as well as `classifier.c`
+When there are questions during this section please answer them in the `tryml.py` file, you will submit this file in Canvas as well as `classifier.c`. Answers can be short, 1-2 sentences.
 
 ### 2.1 Getting the data ###
 
