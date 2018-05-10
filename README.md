@@ -159,7 +159,7 @@ After training our python script will calculate the accuracy the model gets on b
 
 ### 2.2.1 Question ###
 
-Why might we be interested in both training error and testing error? What do these two numbers tell us about our current model?
+Why might we be interested in both training accuracy and testing accuracy? What do these two numbers tell us about our current model?
 
 ### 2.2.2 Question ###
 
@@ -179,7 +179,7 @@ Currently the model uses a logistic activation for the first layer. Try using a 
 
 ### 2.3.2 Question ###
 
-Using the same activation, find the best (power of 10) learning rate for your model. What is the training error and testing error?
+Using the same activation, find the best (power of 10) learning rate for your model. What is the training accuracy and testing accuracy?
 
 ### 2.3.3 Question ###
 
@@ -188,7 +188,7 @@ Right now the regularization parameter `decay` is set to 0. Try adding some deca
 
 ### 2.3.4 Question ###
 
-Modify your model so it has 3 layers instead of two. The layers should be `inputs -> 64`, `64 -> 32`, and `32 -> outputs`. Also modify your model to train for 3000 iterations instead of 1000. Look at the training and testing error for different values of decay (powers of 10, 10^-4 -> 10^0). Which is best? Why?
+Modify your model so it has 3 layers instead of two. The layers should be `inputs -> 64`, `64 -> 32`, and `32 -> outputs`. Also modify your model to train for 3000 iterations instead of 1000. Look at the training and testing accuracy for different values of decay (powers of 10, 10^-4 -> 10^0). Which is best? Why?
 
 ## 3. Training on CIFAR ##
 
