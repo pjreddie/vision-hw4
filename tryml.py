@@ -35,7 +35,7 @@ print("test accuracy:     %f", accuracy_model(m, test))
 
 ## Questions ##
 
-# 2.2.1 Why might we be interested in both training error and testing error? What do these two numbers tell us about our current model?
+# 2.2.1 Why might we be interested in both training accuracy and testing accuracy? What do these two numbers tell us about our current model?
 
 
 # 2.2.2 Try varying the model parameter for learning rate to different powers of 10 (i.e. 10^1, 10^0, 10^-1, 10^-2, 10^-3) and training the model. What patterns do you see and how does the choice of learning rate affect both the loss during training and the final model accuracy?
@@ -47,7 +47,7 @@ print("test accuracy:     %f", accuracy_model(m, test))
 # 2.3.1 Currently the model uses a logistic activation for the first layer. Try using a the different activation functions we programmed. How well do they perform? What's best?
 
 
-# 2.3.2 Using the same activation, find the best (power of 10) learning rate for your model. What is the training error and testing error?
+# 2.3.2 Using the same activation, find the best (power of 10) learning rate for your model. What is the training accuracy and testing accuracy?
 
 
 # 2.3.3 Right now the regularization parameter `decay` is set to 0. Try adding some decay to your model. What happens, does it help? Why or why not may this be?
